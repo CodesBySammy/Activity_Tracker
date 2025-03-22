@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Activity Tracker</h1>
+        </header>
+        
+        <main>
+            <section class="user-section">
+                <h2>Your Activity</h2>
+                <div class="user-info">
+                    <div id="login-section" class="active">
+                        <h3>Login or Register</h3>
+                        <form id="login-form">
+                            <input type="text" id="username" placeholder="Username" required>
+                            <input type="password" id="password" placeholder="Password" required>
+                            <button type="submit" id="login-btn">Login</button>
+                            <button type="button" id="register-btn">Register</button>
+                        </form>
+                    </div>
+                    <div id="user-dashboard" class="hidden">
+                        <h3>Welcome, <span id="user-name"></span></h3>
+                        <div class="counter-card">
+                            <p>Today's Count: <span id="today-count">0</span></p>
+                            <p>Total Count: <span id="total-count">0</span></p>
+                            <button id="increment-btn" class="primary-btn">+</button>
+                        </div>
+                        
+                        <div class="friend-code-section">
+                            <h4>Your Friend Code</h4>
+                            <div class="code-display">
+                                <span id="friend-code"></span>
+                                <button id="copy-code-btn" class="small-btn">Copy</button>
+                            </div>
+                            <p class="hint">Share this code with friends so they can add you</p>
+                        </div>
+                        
+                        <div class="add-friend-section">
+                            <h4>Add Friend</h4>
+                            <div class="add-friend-form">
+                                <input type="text" id="friend-code-input" placeholder="Enter friend code">
+                                <button id="add-friend-btn">Send Request</button>
+                            </div>
+                        </div>
+                        
+                        <div id="friend-requests-section" class="hidden">
+                            <h4>Friend Requests</h4>
+                            <div id="friend-requests-list">
+                                <!-- Friend requests will be populated here -->
+                            </div>
+                        </div>
+                        
+                        <button id="logout-btn">Logout</button>
+                    </div>
+                </div>
+            </section>
+            
+            <section class="stats-section">
+                <h2>Friends Activity</h2>
+                <div class="filters">
+                    <select id="date-filter">
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month">This Month</option>
+                        <option value="all" selected>All Time</option>
+                    </select>
+                </div>
+                <div id="no-friends-message" class="hidden">
+                    <p>You don't have any friends yet. Share your friend code or add friends to see their activity here.</p>
+                </div>
+                <div class="user-stats-container" id="user-stats">
+                    <!-- User stats will be populated here -->
+                </div>
+            </section>
+        </main>
+        
+        <footer>
+            <p>Activity Tracker &copy; 2025</p>
+        </footer>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
