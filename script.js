@@ -31,7 +31,7 @@ const userStats = document.getElementById('user-stats');
 const noFriendsMessage = document.getElementById('no-friends-message');
 
 // API Endpoint (can be changed to production URL later)
-const API_URL = '/api';
+const API_URL = 'https://activity-tracker-smoky.vercel.app/api';
 
 // Helper Functions
 // Set auth token in headers
