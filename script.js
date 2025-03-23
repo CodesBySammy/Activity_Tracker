@@ -31,7 +31,7 @@ const userStats = document.getElementById('user-stats');
 const noFriendsMessage = document.getElementById('no-friends-message');
 
 // API Endpoint (can be changed to production URL later)
-const API_URL = 'https://activity-tracker-smoky.vercel.app/api';
+const API_URL = 'http://localhost:3000/api';
 
 // Helper Functions
 // Set auth token in headers
@@ -197,6 +197,8 @@ const fetchCounts = async () => {
 // Increment activity count
 const incrementCount = async () => {
     try {
+        incrementBtn.disabled = true; // Disable the button during request
+        
         const response = await fetch(`${API_URL}/users/${currentUser._id}/increment`, {
             method: 'POST',
             headers: getAuthHeaders()
@@ -208,12 +210,24 @@ const incrementCount = async () => {
             throw new Error(data.message || 'Failed to increment count');
         }
         
-        // Refresh counts after incrementing
-        fetchCounts();
+        // Immediately update the count display (optimistic update)
+        const currentCount = parseInt(todayCountSpan.textContent);
+        const currentTotal = parseInt(totalCountSpan.textContent);
+        todayCountSpan.textContent = currentCount + 1;
+        totalCountSpan.textContent = currentTotal + 1;
+        
+        // Then refresh actual counts
+        await fetchCounts();
+        
+        // Also refresh friends stats to show updated leaderboard
+        await fetchFriendsStats();
         
         return data;
     } catch (error) {
         console.error('Error incrementing count:', error);
+        alert('Error incrementing count. Please try again.');
+    } finally {
+        incrementBtn.disabled = false; // Re-enable the button
     }
 };
 
@@ -241,6 +255,13 @@ const sendFriendRequest = async (friendCode) => {
 // Accept friend request
 const acceptFriendRequest = async (requestId) => {
     try {
+        // Disable UI during the operation
+        const requestItem = document.querySelector(`[data-request-id="${requestId}"]`);
+        if (requestItem) {
+            const buttons = requestItem.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+        }
+        
         const response = await fetch(`${API_URL}/friends/accept`, {
             method: 'POST',
             headers: getAuthHeaders(),
@@ -253,19 +274,39 @@ const acceptFriendRequest = async (requestId) => {
             throw new Error(data.message || 'Failed to accept friend request');
         }
         
-        // Refresh data after accepting
+        // Immediately remove the request item from UI (optimistic update)
+        if (requestItem) {
+            requestItem.remove();
+            
+            // If no more requests, hide the section
+            if (friendRequestsList.children.length === 0) {
+                friendRequestsSection.classList.add('hidden');
+            }
+        }
+        
+        // Refresh data to ensure everything is up to date
         await fetchUserProfile();
-        fetchFriendsStats();
+        
+        // Update the friend stats section
+        await fetchFriendsStats();
         
         return data;
     } catch (error) {
         console.error('Error accepting friend request:', error);
+        alert('Error accepting friend request. Please try again.');
     }
 };
 
 // Reject friend request
 const rejectFriendRequest = async (requestId) => {
     try {
+        // Disable UI during the operation
+        const requestItem = document.querySelector(`[data-request-id="${requestId}"]`);
+        if (requestItem) {
+            const buttons = requestItem.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = true);
+        }
+        
         const response = await fetch(`${API_URL}/friends/reject`, {
             method: 'POST',
             headers: getAuthHeaders(),
@@ -278,12 +319,23 @@ const rejectFriendRequest = async (requestId) => {
             throw new Error(data.message || 'Failed to reject friend request');
         }
         
-        // Refresh data after rejecting
+        // Immediately remove the request item from UI (optimistic update)
+        if (requestItem) {
+            requestItem.remove();
+            
+            // If no more requests, hide the section
+            if (friendRequestsList.children.length === 0) {
+                friendRequestsSection.classList.add('hidden');
+            }
+        }
+        
+        // Refresh user data to ensure everything is up to date
         await fetchUserProfile();
         
         return data;
     } catch (error) {
         console.error('Error rejecting friend request:', error);
+        alert('Error rejecting friend request. Please try again.');
     }
 };
 
@@ -303,6 +355,7 @@ const fetchFriendRequests = async () => {
             userData.pendingFriendRequests.forEach(request => {
                 const requestItem = document.createElement('div');
                 requestItem.className = 'friend-request-item';
+                requestItem.setAttribute('data-request-id', request._id); // Add data attribute for easy selection
                 
                 requestItem.innerHTML = `
                     <p>Friend request from <strong>${request.from.username}</strong></p>
@@ -333,6 +386,9 @@ const fetchFriendRequests = async () => {
 const fetchFriendsStats = async () => {
     try {
         const filter = dateFilter.value;
+        
+        // Show loading indicator
+        userStats.innerHTML = '<p class="loading-message">Loading stats...</p>';
         
         const response = await fetch(`${API_URL}/friends/stats?filter=${filter}`, {
             method: 'GET',
@@ -400,6 +456,7 @@ const fetchFriendsStats = async () => {
         return data;
     } catch (error) {
         console.error('Error fetching friend stats:', error);
+        userStats.innerHTML = '<p class="error-message">Failed to load stats. Please try again.</p>';
     }
 };
 
@@ -417,11 +474,17 @@ loginForm.addEventListener('submit', async (e) => {
     }
     
     try {
+        loginBtn.disabled = true; // Disable login button while processing
+        loginBtn.textContent = 'Logging in...';
+        
         await loginUser(username, password);
         showDashboard();
         updateDashboard();
     } catch (error) {
         alert(error.message || 'Login failed. Please try again.');
+    } finally {
+        loginBtn.disabled = false;
+        loginBtn.textContent = 'Login';
     }
 });
 
@@ -442,10 +505,16 @@ registerBtn.addEventListener('click', async () => {
     }
     
     try {
+        registerBtn.disabled = true; // Disable register button while processing
+        registerBtn.textContent = 'Registering...';
+        
         await registerUser(username, password);
         alert('Registration successful! You can now log in.');
     } catch (error) {
         alert(error.message || 'Registration failed. Please try again.');
+    } finally {
+        registerBtn.disabled = false;
+        registerBtn.textContent = 'Register';
     }
 });
 
@@ -461,7 +530,14 @@ copyCodeBtn.addEventListener('click', () => {
     // Use clipboard API if available
     if (navigator.clipboard) {
         navigator.clipboard.writeText(friendCode)
-            .then(() => alert('Friend code copied to clipboard!'))
+            .then(() => {
+                // Visual feedback
+                const originalText = copyCodeBtn.textContent;
+                copyCodeBtn.textContent = 'Copied!';
+                setTimeout(() => {
+                    copyCodeBtn.textContent = originalText;
+                }, 1500);
+            })
             .catch(err => console.error('Could not copy text: ', err));
     } else {
         // Fallback for older browsers
@@ -471,7 +547,13 @@ copyCodeBtn.addEventListener('click', () => {
         tempInput.select();
         document.execCommand('copy');
         document.body.removeChild(tempInput);
-        alert('Friend code copied to clipboard!');
+        
+        // Visual feedback
+        const originalText = copyCodeBtn.textContent;
+        copyCodeBtn.textContent = 'Copied!';
+        setTimeout(() => {
+            copyCodeBtn.textContent = originalText;
+        }, 1500);
     }
 });
 
@@ -485,11 +567,17 @@ addFriendBtn.addEventListener('click', async () => {
     }
     
     try {
+        addFriendBtn.disabled = true; // Disable button during request
+        addFriendBtn.textContent = 'Sending...';
+        
         await sendFriendRequest(friendCode);
         alert('Friend request sent successfully!');
         friendCodeInput.value = '';
     } catch (error) {
         alert(error.message || 'Failed to send friend request');
+    } finally {
+        addFriendBtn.disabled = false;
+        addFriendBtn.textContent = 'Add Friend';
     }
 });
 
@@ -503,6 +591,25 @@ logoutBtn.addEventListener('click', () => {
 dateFilter.addEventListener('change', () => {
     fetchFriendsStats();
 });
+
+// Poll for friend requests periodically (every 30 seconds)
+const startRequestsPolling = () => {
+    // Initial check
+    fetchFriendRequests();
+    
+    // Set up interval for polling
+    const pollInterval = setInterval(() => {
+        if (currentUser && userDashboard.classList.contains('active')) {
+            fetchFriendRequests();
+        } else {
+            // Stop polling if user is logged out or not on dashboard
+            clearInterval(pollInterval);
+        }
+    }, 30000); // Check every 30 seconds
+    
+    // Store interval ID for cleanup
+    window.requestsPollingInterval = pollInterval;
+};
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
@@ -519,6 +626,7 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(() => {
                 showDashboard();
                 updateDashboard();
+                startRequestsPolling(); // Start polling for friend requests
             })
             .catch(() => {
                 // If token is invalid, clear session and show login
@@ -527,5 +635,13 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     } else {
         showLoginForm();
+    }
+});
+
+// Add event handler for user visibility changes to refresh data when page becomes visible
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && currentUser && userDashboard.classList.contains('active')) {
+        // User came back to the tab, refresh data
+        updateDashboard();
     }
 });
