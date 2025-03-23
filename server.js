@@ -14,14 +14,15 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Add this to your server.js
-app.use(express.static('public'));
+const path = require('path');
 
-// Make sure you have a catch-all route at the end
+// Serve static files
+app.use(express.static(__dirname));
+
+// Handle SPA routing
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
-
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI || 'mongodb+srv://samosa:Laudalele@mine.nlznt.mongodb.net/?retryWrites=true&w=majority&appName=mine', {
     useNewUrlParser: true,
