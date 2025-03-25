@@ -411,25 +411,21 @@ app.post('/api/users/:userId/increment', authenticateUser, async (req, res) => {
         
         const today = getTodayDate();
         
-        // Find or create today's activity record
-        let todayActivity = await Activity.findOne({
-            userId,
-            date: today
-        });
-        
-        if (todayActivity) {
-            // Increment existing record
-            todayActivity.count += 1;
-            await todayActivity.save();
-        } else {
-            // Create new activity record for today
-            todayActivity = new Activity({
-                userId,
-                date: today,
-                count: 1
-            });
-            await todayActivity.save();
-        }
+        // Find or create today's activity record, using findOneAndUpdate for atomic operation
+        const todayActivity = await Activity.findOneAndUpdate(
+            { 
+                userId, 
+                date: today 
+            }, 
+            { 
+                $inc: { count: 1 },  // Increment count by 1
+                $setOnInsert: { userId, date: today }  // Only set these if a new document is created
+            }, 
+            { 
+                upsert: true,  // Create a new document if it doesn't exist
+                new: true      // Return the modified document
+            }
+        );
         
         res.json({ message: 'Count incremented successfully' });
     } catch (error) {
