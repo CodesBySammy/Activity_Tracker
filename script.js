@@ -645,3 +645,41 @@ document.addEventListener('visibilitychange', () => {
         updateDashboard();
     }
 });
+
+// Initialize app
+document.addEventListener('DOMContentLoaded', () => {
+    // Check for saved session
+    const savedUser = localStorage.getItem('activityTrackerUser');
+    const savedToken = localStorage.getItem('activityTrackerToken');
+    
+    if (savedUser && savedToken) {
+        currentUser = JSON.parse(savedUser);
+        authToken = savedToken;
+        
+        // Validate token by trying to fetch profile
+        fetchUserProfile()
+            .then(() => {
+                showDashboard();
+                updateDashboard();
+                startRequestsPolling(); // Start polling for friend requests
+            })
+            .catch(() => {
+                // If token is invalid, clear session and show login
+                clearSession();
+                showLoginForm();
+                
+                // Reset dashboard elements
+                userNameSpan.textContent = '';
+                todayCountSpan.textContent = '0';
+                totalCountSpan.textContent = '0';
+                friendCodeSpan.textContent = '';
+                friendRequestsList.innerHTML = '';
+                friendRequestsSection.classList.add('hidden');
+                userStats.innerHTML = '';
+                userStats.classList.add('hidden');
+                noFriendsMessage.classList.add('hidden');
+            });
+    } else {
+        showLoginForm();
+    }
+});
